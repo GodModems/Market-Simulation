@@ -22,8 +22,12 @@ void Market::placeSellOrder(int productId, int amount, float price, int ownerId)
         << ", Product " << productId
         << ", Amount " << amount
         << ", Price " << price << "\n";
-    matchOrders(productId);
+    // Only immediately match if the order is not a market-generated sell order.
+    if (ownerId != 0) {
+        matchOrders(productId);
+    }
 }
+
 
 bool Market::removeOrder(int orderId, int ownerId) {
     auto it = std::find_if(orders.begin(), orders.end(), [&](const Order& o) {

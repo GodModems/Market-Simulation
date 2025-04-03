@@ -159,11 +159,13 @@ static void buyCommodity(Factory& player, Market& market) {
     int commodityId, amount;
     float maxPrice;
     char fullPurchase;
+
     std::cout << "Enter commodity ID, desired amount, and maximum price: ";
     std::cin >> commodityId >> amount >> maxPrice;
     std::cout << "Full purchase only? (y/n): ";
     std::cin >> fullPurchase;
 
+    // If full purchase is required, check that enough supply is available.
     if (std::toupper(fullPurchase) == 'Y') {
         int available = 0;
         for (const auto& order : market.orders) {
@@ -175,26 +177,59 @@ static void buyCommodity(Factory& player, Market& market) {
             return;
         }
     }
+
+    // Place the buy order.
     market.placeBuyOrder(commodityId, amount, maxPrice, player.id);
+
+    // For this simulation, assume instant full execution of the buy order.
+    // Update the player's inventory by adding exactly 'amount' units.
+    bool found = false;
+    for (auto& item : player.inventory) {
+        if (item.first.id == commodityId) {
+            item.second += amount;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        // If the commodity isn't already in inventory, create a new entry.
+        // (In a full implementation, you'd look up the commodity details from a catalog.)
+        Commodity commodity;
+        commodity.id = commodityId;
+        commodity.name = "Commodity " + std::to_string(commodityId);
+        // Assume it's a Resource (or set type appropriately).
+        commodity.type = CommodityType::Resource;
+        player.inventory.push_back({ commodity, amount });
+    }
+    std::cout << "Purchased " << amount << " units of commodity " << commodityId << ".\n";
 }
 
 // Helper function: Handle selling a commodity.
 static void sellCommodity(Factory& player, Market& market) {
     int commodityId, amount;
     float price;
+
     std::cout << "Enter commodity ID, amount, and price: ";
     std::cin >> commodityId >> amount >> price;
-    for (const auto& item : player.inventory) {
+
+    // Check if the player has enough of the commodity.
+    for (auto& item : player.inventory) {
         if (item.first.id == commodityId) {
             if (item.second < amount) {
                 std::cout << "Insufficient quantity in inventory. Order not placed.\n";
                 return;
             }
+            // Remove the entire 'amount' from inventory immediately.
+            item.second -= amount;
             break;
         }
     }
+
+    // Place the sell order.
     market.placeSellOrder(commodityId, amount, price, player.id);
+    std::cout << "Placed SELL order for " << amount << " units of commodity " << commodityId << ".\n";
 }
+
 
 // Helper function: Purchase equipment from the catalog.
 static void purchaseEquipment(Factory& player, const std::vector<Equipment>& equipCatalog) {
@@ -235,18 +270,50 @@ static void purchaseEquipment(Factory& player, const std::vector<Equipment>& equ
 // Helper function: View the player's inventory.
 static void viewInventory(const Factory& factory) {
     std::cout << "\n--- Inventory for Factory " << factory.id << " ---\n";
+
+    // Resources Section
+    std::cout << "\nResources:\n";
+    bool hasResources = false;
     for (const auto& item : factory.inventory) {
-        std::cout << "Commodity " << item.first.id << " ("
-            << (item.first.type == CommodityType::Resource ? "Resource" : "Product")
-            << ", " << item.first.name << ") - Quantity: " << item.second << "\n";
+        if (item.first.type == CommodityType::Resource) {
+            std::cout << item.first.id
+                << " (" << item.first.name << ") - Quantity: "
+                << item.second << "\n";
+            hasResources = true;
+        }
     }
+    if (!hasResources) {
+        std::cout << "  None\n";
+    }
+
+    // Products Section
+    std::cout << "\nProducts:\n";
+    bool hasProducts = false;
+    for (const auto& item : factory.inventory) {
+        if (item.first.type == CommodityType::Product) {
+            std::cout << item.first.id
+                << " (" << item.first.name << ") - Quantity: "
+                << item.second << "\n";
+            hasProducts = true;
+        }
+    }
+    if (!hasProducts) {
+        std::cout << "  None\n";
+    }
+
+    // Equipment Section
     std::cout << "\nEquipment Owned (" << factory.equipment.size() << "):\n";
-    for (size_t i = 0; i < factory.equipment.size(); i++) {
-        const auto& equip = factory.equipment[i];
-        std::cout << "Equipment " << i + 1
-            << " | Output Rate: " << std::setw(3) << equip.output_rate
-            << " | Operational Cost: " << std::setw(6) << equip.operational_cost
-            << " | Price: " << std::setw(6) << equip.price << "\n";
+    if (factory.equipment.empty()) {
+        std::cout << "  None\n";
+    }
+    else {
+        for (size_t i = 0; i < factory.equipment.size(); i++) {
+            const auto& equip = factory.equipment[i];
+            std::cout << equip.id
+                << " | Output Rate: " << std::setw(3) << equip.output_rate
+                << " | Operational Cost: " << std::setw(6) << equip.operational_cost
+                << " | Price: " << std::setw(6) << equip.price << "\n";
+        }
     }
 }
 

@@ -13,6 +13,27 @@ const int NUM_AI_FACTORIES = 6;
 SimulationWorld initializeSimulation() {
     SimulationWorld world;
 
+    // --- Name Dictionaries ---
+    // Ensure these vectors contain at least as many names as needed.
+    std::vector<std::string> resourceNames = {
+        "Iron", "Copper", "Gold", "Silver", "Coal",
+        "Oil", "Timber", "Uranium", "Platinum", "Nickel",
+        "Zinc", "Lead", "Tin", "Aluminum", "Lithium",
+        "Cobalt", "Chromium", "Manganese", "Potash", "Salt",
+        "Phosphate", "Bauxite", "Graphite", "Silicon", "Soda Ash"
+    };
+
+    std::vector<std::string> productNames = {
+        "Steel", "Electronics", "Automobiles", "Chemicals", "Textiles",
+        "Machinery", "Pharmaceuticals", "Food Products", "Furniture", "Paper",
+        "Plastics", "Ceramics", "Rubber", "Cosmetics", "Beverages"
+    };
+
+    std::vector<std::string> equipmentNames = {
+        "Lathe", "Press", "Conveyor", "Crane", "Drill",
+        "Mixer", "Furnace", "Milling Machine", "Cutter", "Grinder"
+    };
+
     // Random engine setup.
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -23,9 +44,19 @@ SimulationWorld initializeSimulation() {
     for (int i = 0; i < NUM_RESOURCES; i++) {
         Commodity res;
         res.id = i + 1; // IDs 1 .. NUM_RESOURCES.
-        std::stringstream ss;
-        ss << "Resource " << res.id;
-        res.name = ss.str();
+
+        // Randomly select a name from resourceNames and remove it.
+        if (!resourceNames.empty()) {
+            std::uniform_int_distribution<int> nameDist(0, resourceNames.size() - 1);
+            int idx = nameDist(gen);
+            res.name = resourceNames[idx];
+            resourceNames.erase(resourceNames.begin() + idx);
+        }
+        else {
+            // Fallback in case dictionary is exhausted.
+            res.name = "Resource_" + std::to_string(res.id);
+        }
+
         res.price = resourcePriceDist(gen);
         res.type = CommodityType::Resource;
         // No recipe or equipment requirements for raw resources.
@@ -33,12 +64,26 @@ SimulationWorld initializeSimulation() {
     }
 
     // --- Generate Equipment Catalog ---
-    std::uniform_real_distribution<float> equipPriceDist(300.0f, 1000.0f);
+    std::uniform_real_distribution<float> equipPriceDist(10.0f, 50.0f);
     std::uniform_int_distribution<int> outputRateDist(1, 10);
     std::uniform_real_distribution<float> operationalCostDist(10.0f, 50.0f);
     for (int i = 0; i < NUM_EQUIPMENTS; i++) {
         Equipment equip;
         equip.id = i + 1; // Equipment IDs: 1..NUM_EQUIPMENTS.
+
+        // Randomly select a name from equipmentNames and remove it.
+        std::string equipName;
+        if (!equipmentNames.empty()) {
+            std::uniform_int_distribution<int> nameDist(0, equipmentNames.size() - 1);
+            int idx = nameDist(gen);
+            equipName = equipmentNames[idx];
+            equipmentNames.erase(equipmentNames.begin() + idx);
+        }
+        else {
+            equipName = "Equipment_" + std::to_string(equip.id);
+        }
+        // (If you wish, you can store equipName in a separate field if Equipment had one.)
+
         equip.price = equipPriceDist(gen);
         equip.output_rate = outputRateDist(gen);
         equip.operational_cost = operationalCostDist(gen);
@@ -46,16 +91,24 @@ SimulationWorld initializeSimulation() {
     }
 
     // --- Generate Product Catalog ---
-    // Products: commodity type Product with a recipe and equipment requirements.
     std::uniform_real_distribution<float> productPriceDist(75.0f, 700.0f);
-    std::uniform_int_distribution<int> recipeCountDist(1, 7);              // How many resource ingredients.
-    std::uniform_int_distribution<int> recipeQtyDist(1, 10);                // Quantity required for each.
+    std::uniform_int_distribution<int> recipeCountDist(1, 7);   // How many resource ingredients.
+    std::uniform_int_distribution<int> recipeQtyDist(1, 10);      // Quantity required for each.
     for (int i = 0; i < NUM_PRODUCTS; i++) {
         Commodity prod;
         prod.id = NUM_RESOURCES + i + 1; // Product IDs start after resources.
-        std::stringstream ss;
-        ss << "Product " << prod.id;
-        prod.name = ss.str();
+
+        // Randomly select a name from productNames and remove it.
+        if (!productNames.empty()) {
+            std::uniform_int_distribution<int> nameDist(0, productNames.size() - 1);
+            int idx = nameDist(gen);
+            prod.name = productNames[idx];
+            productNames.erase(productNames.begin() + idx);
+        }
+        else {
+            prod.name = "Product_" + std::to_string(prod.id);
+        }
+
         prod.price = productPriceDist(gen);
         prod.type = CommodityType::Product;
 
